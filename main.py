@@ -11,8 +11,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi import Query, Path
 from typing import Optional
 
-from models.person import PersonCreate, PersonRead, PersonUpdate
-from models.address import AddressCreate, AddressRead, AddressUpdate
+from models.owner import OwnerCreate, OwnerRead, OwnerUpdate
+from models.company import CompanyCreate, CompanyRead, CompanyUpdate
 from models.health import Health
 
 port = int(os.environ.get("FASTAPIPORT", 8000))
@@ -20,12 +20,13 @@ port = int(os.environ.get("FASTAPIPORT", 8000))
 # -----------------------------------------------------------------------------
 # Fake in-memory "databases"
 # -----------------------------------------------------------------------------
-persons: Dict[UUID, PersonRead] = {}
-addresses: Dict[UUID, AddressRead] = {}
+
+owners: Dict[UUID, OwnerRead] = {}
+companies: Dict[UUID, CompanyRead] = {}
 
 app = FastAPI(
-    title="Person/Address API",
-    description="Demo FastAPI app using Pydantic v2 models for Person and Address",
+    title="Owner/Company API",
+    description="Demo FastAPI app using Pydantic v2 models for Owner and Company",
     version="0.1.0",
 )
 
@@ -33,45 +34,25 @@ app = FastAPI(
 # Address endpoints
 # -----------------------------------------------------------------------------
 
-def make_health(echo: Optional[str], path_echo: Optional[str]=None) -> Health:
-    return Health(
-        status=200,
-        status_message="OK",
-        timestamp=datetime.utcnow().isoformat() + "Z",
-        ip_address=socket.gethostbyname(socket.gethostname()),
-        echo=echo,
-        path_echo=path_echo
-    )
+@app.post("/companies", response_model=CompanyRead, status_code=201)
+def create_company(company: CompanyCreate):
+    if company.EIN in companies:
+        raise HTTPException(status_code=400, detail="Company with this EIN already exists")
+    companies[company.EIN] = CompanyRead(**company.model_dump())
+    return companies[company.EIN]
 
-@app.get("/health", response_model=Health)
-def get_health_no_path(echo: str | None = Query(None, description="Optional echo string")):
-    # Works because path_echo is optional in the model
-    return make_health(echo=echo, path_echo=None)
-
-@app.get("/health/{path_echo}", response_model=Health)
-def get_health_with_path(
-    path_echo: str = Path(..., description="Required echo in the URL path"),
-    echo: str | None = Query(None, description="Optional echo string"),
-):
-    return make_health(echo=echo, path_echo=path_echo)
-
-@app.post("/addresses", response_model=AddressRead, status_code=201)
-def create_address(address: AddressCreate):
-    if address.id in addresses:
-        raise HTTPException(status_code=400, detail="Address with this ID already exists")
-    addresses[address.id] = AddressRead(**address.model_dump())
-    return addresses[address.id]
-
-@app.get("/addresses", response_model=List[AddressRead])
-def list_addresses(
+@app.get("/companies", response_model=List[CompanyRead])
+def list_companies(
+    name: Optional[str] = Query(None, description="Filter by name"),
     street: Optional[str] = Query(None, description="Filter by street"),
     city: Optional[str] = Query(None, description="Filter by city"),
     state: Optional[str] = Query(None, description="Filter by state/region"),
     postal_code: Optional[str] = Query(None, description="Filter by postal code"),
-    country: Optional[str] = Query(None, description="Filter by country"),
 ):
-    results = list(addresses.values())
+    results = list(companies.values())
 
+    if name is not None:
+        results = [a for a in results if a.name == name]
     if street is not None:
         results = [a for a in results if a.street == street]
     if city is not None:
@@ -80,51 +61,51 @@ def list_addresses(
         results = [a for a in results if a.state == state]
     if postal_code is not None:
         results = [a for a in results if a.postal_code == postal_code]
-    if country is not None:
-        results = [a for a in results if a.country == country]
+
 
     return results
 
-@app.get("/addresses/{address_id}", response_model=AddressRead)
-def get_address(address_id: UUID):
-    if address_id not in addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-    return addresses[address_id]
+@app.get("/companies/{company_ein}", response_model=CompanyRead)
+def get_company(company_ein: int):
+    if company_ein not in companies:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return companies[company_ein]
 
-@app.patch("/addresses/{address_id}", response_model=AddressRead)
-def update_address(address_id: UUID, update: AddressUpdate):
-    if address_id not in addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-    stored = addresses[address_id].model_dump()
-    stored.update(update.model_dump(exclude_unset=True))
-    addresses[address_id] = AddressRead(**stored)
-    return addresses[address_id]
+@app.put("/companies/{company_ein}", response_model=CompanyRead)
+def update_company(company_ein: int, update: CompanyUpdate):
+    company = CompanyCreate(company_ein)
+    companies[company.EIN] = CompanyRead(**company.model_dump())
+    return companies[company.EIN]
 
+@app.delete("/companies/{company_ein}", response_model=OwnerRead)
+def delete_company(company_ein: int):
+    if company_ein not in companies:
+        raise HTTPException(status_code=404, detail="Company not found")
+    del companies[company_ein]
 # -----------------------------------------------------------------------------
 # Person endpoints
 # -----------------------------------------------------------------------------
-@app.post("/persons", response_model=PersonRead, status_code=201)
-def create_person(person: PersonCreate):
-    # Each person gets its own UUID; stored as PersonRead
-    person_read = PersonRead(**person.model_dump())
-    persons[person_read.id] = person_read
-    return person_read
+@app.post("/owner", response_model=OwnerRead, status_code=201)
+def create_owner(owner: OwnerCreate):
+    # Each owner gets its own UUID; stored as OwnerRead
+    owner_read = OwnerRead(**owner.model_dump())
+    owners[owner_read.ssn] = owner_read
+    return owner_read
 
-@app.get("/persons", response_model=List[PersonRead])
-def list_persons(
-    uni: Optional[str] = Query(None, description="Filter by Columbia UNI"),
+@app.get("/owners", response_model=List[OwnerRead])
+def list_owners(
+    ssn: Optional[str] = Query(None, description="Filter by ssn"),
     first_name: Optional[str] = Query(None, description="Filter by first name"),
     last_name: Optional[str] = Query(None, description="Filter by last name"),
     email: Optional[str] = Query(None, description="Filter by email"),
     phone: Optional[str] = Query(None, description="Filter by phone number"),
     birth_date: Optional[str] = Query(None, description="Filter by date of birth (YYYY-MM-DD)"),
     city: Optional[str] = Query(None, description="Filter by city of at least one address"),
-    country: Optional[str] = Query(None, description="Filter by country of at least one address"),
 ):
-    results = list(persons.values())
+    results = list(owners.values())
 
-    if uni is not None:
-        results = [p for p in results if p.uni == uni]
+    if ssn is not None:
+        results = [p for p in results if p.ssn == ssn]
     if first_name is not None:
         results = [p for p in results if p.first_name == first_name]
     if last_name is not None:
@@ -138,33 +119,35 @@ def list_persons(
 
     # nested address filtering
     if city is not None:
-        results = [p for p in results if any(addr.city == city for addr in p.addresses)]
-    if country is not None:
-        results = [p for p in results if any(addr.country == country for addr in p.addresses)]
+        results = [p for p in results if any(addr.city == city for addr in p.Companies)]
 
     return results
 
-@app.get("/persons/{person_id}", response_model=PersonRead)
-def get_person(person_id: UUID):
-    if person_id not in persons:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons[person_id]
+@app.get("/owners/{owner_ein}", response_model=OwnerRead)
+def get_owner(owner_ssn: int):
+    if owner_ssn not in owners:
+        raise HTTPException(status_code=404, detail="Owner not found")
+    return owners[owner_ssn]
 
-@app.patch("/persons/{person_id}", response_model=PersonRead)
-def update_person(person_id: UUID, update: PersonUpdate):
-    if person_id not in persons:
-        raise HTTPException(status_code=404, detail="Person not found")
-    stored = persons[person_id].model_dump()
-    stored.update(update.model_dump(exclude_unset=True))
-    persons[person_id] = PersonRead(**stored)
-    return persons[person_id]
+@app.put("/owners/{owner_ein}", response_model=OwnerRead)
+def update_owner(owner_ssn: int, update: OwnerUpdate):
+    owner = OwnerCreate(owner_ssn)
+    owners[owner.ssn] = owner
+    return oowners[owner.ssn]
+
+@app.delete("/owners/{owner_ssn}", response_model=OwnerRead)
+def delete_owner(owner_ssn: int):
+    if owner_ssn not in owners:
+        raise HTTPException(status_code=404, detail="Owner not found")
+    del owners[owner_ssn]
+    
 
 # -----------------------------------------------------------------------------
 # Root
 # -----------------------------------------------------------------------------
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Person/Address API. See /docs for OpenAPI UI."}
+    return {"message": "Welcome to the Owner/Company API. See /docs for OpenAPI UI."}
 
 # -----------------------------------------------------------------------------
 # Entrypoint for `python main.py`
