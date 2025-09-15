@@ -71,22 +71,6 @@ class CompanyCreate(CompanyBase):
     }
 
 
-class CompanyUpdate(BaseModel):
-    """Partial update; EIN and name is taken from the path, not the body."""
-    street: Optional[str] = Field(
-        None, description="Street address and number.", json_schema_extra={"example": "112 Main St"}
-    )
-    city: Optional[str] = Field(
-        None, description="City or locality.", json_schema_extra={"example": "New York"}
-    )
-    state: Optional[str] = Field(
-        None, description="State/region code if applicable.", json_schema_extra={"example": "NY"}
-    )
-    postal_code: Optional[str] = Field(
-        None, description="Postal or ZIP code.", json_schema_extra={"example": "10027"}
-    )
-
-
     model_config = {
         "json_schema_extra": {
             "examples": [

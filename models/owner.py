@@ -114,62 +114,11 @@ class OwnerCreate(OwnerBase):
         }
     }
 
-
-class OwnerUpdate(BaseModel):
-    """Partial update for an owner; supply only fields to change."""
-    ssn: Optional[int] = Field(
-        None, description="ssn.", json_schema_extra={"example": "123456778"}
-    )
-    first_name: Optional[str] = Field(None, json_schema_extra={"example": "Nick"})
-    last_name: Optional[str] = Field(None, json_schema_extra={"example": "King"})
-    email: Optional[EmailStr] = Field(None, json_schema_extra={"example": "nk@gmail.com"})
-    phone: Optional[str] = Field(None, json_schema_extra={"example": "+1-576-222-4231"})
-    birth_date: Optional[date] = Field(None, json_schema_extra={"example": "2000-12-10"})
-    companies: Optional[List[CompanyBase]] = Field(
-        None,
-        description="Replace the entire set of companies with this list.",
-        json_schema_extra={
-            "example": [
-                {
-                    "ein": "556775358",
-                    "name": "24 Pizza",
-                    "street": "10 Downing St",
-                    "city": "San Diego",
-                    "state": "CA",
-                    "postal_code": "92003",
-                }
-            ]
-        },
-    )
-    
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {"first_name": "Nathan", "last_name": "Briar"},
-                {"phone": "+1-415-555-0199"},
-                {
-                    "companies": [
-                        {
-                            "ein": "914444023",
-                            "name": "Post Fkkd",
-                            "street": "10 Main St",
-                            "city": "San Diego",
-                            "state": "CA",
-                            "postal_code": "92201",
-                        }
-                    ]
-                },
-            ]
-        }
-    }
-
-
 class OwnerRead(OwnerBase):
     """Server representation returned to clients."""
     ssn: int = Field(
-        default_factory=uuid4,
-        description="Server-generated Owner ID.",
-        json_schema_extra={"example": "99999999-9999-4999-8999-999999999999"},
+        description="ssn of owner",
+        json_schema_extra={"example": "924236756"},
     )
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -186,8 +135,7 @@ class OwnerRead(OwnerBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "id": "99999999-9999-4999-8999-999999999999",
-                    "ssn": "917260053",
+                    "ssn": "924236756",
                     "first_name": "Clara",
                     "last_name": "Green",
                     "email": "apple@google.com",

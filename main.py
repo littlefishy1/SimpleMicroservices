@@ -5,15 +5,13 @@ import socket
 from datetime import datetime
 
 from typing import Dict, List
-from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from fastapi import Query, Path
 from typing import Optional
 
-from models.owner import OwnerCreate, OwnerRead, OwnerUpdate
-from models.company import CompanyCreate, CompanyRead, CompanyUpdate
-from models.health import Health
+from models.owner import OwnerCreate, OwnerRead
+from models.company import CompanyCreate, CompanyRead
 
 port = int(os.environ.get("FASTAPIPORT", 8000))
 
@@ -21,8 +19,8 @@ port = int(os.environ.get("FASTAPIPORT", 8000))
 # Fake in-memory "databases"
 # -----------------------------------------------------------------------------
 
-owners: Dict[UUID, OwnerRead] = {}
-companies: Dict[UUID, CompanyRead] = {}
+owners: Dict[int, OwnerRead] = {}
+companies: Dict[int, CompanyRead] = {}
 
 app = FastAPI(
     title="Owner/Company API",
@@ -72,10 +70,10 @@ def get_company(company_ein: int):
     return companies[company_ein]
 
 @app.put("/companies/{company_ein}", response_model=CompanyRead)
-def update_company(company_ein: int, update: CompanyUpdate):
+def update_company(company_ein: int):
     company = CompanyCreate(company_ein)
-    companies[company.EIN] = CompanyRead(**company.model_dump())
-    return companies[company.EIN]
+    companies[company_ein] = CompanyRead(**company.model_dump())
+    return companies[company_ein]
 
 @app.delete("/companies/{company_ein}", response_model=OwnerRead)
 def delete_company(company_ein: int):
@@ -130,10 +128,10 @@ def get_owner(owner_ssn: int):
     return owners[owner_ssn]
 
 @app.put("/owners/{owner_ein}", response_model=OwnerRead)
-def update_owner(owner_ssn: int, update: OwnerUpdate):
+def update_owner(owner_ssn: int):
     owner = OwnerCreate(owner_ssn)
-    owners[owner.ssn] = owner
-    return oowners[owner.ssn]
+    owners[owner_ssn] = OwnerRead(**owner.model_dump())
+    return owners[owner_ssn]
 
 @app.delete("/owners/{owner_ssn}", response_model=OwnerRead)
 def delete_owner(owner_ssn: int):
